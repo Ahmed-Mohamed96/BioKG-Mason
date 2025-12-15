@@ -24,7 +24,8 @@ class TripletList(BaseModel):
 SYSTEM_PROMPT = """
 You are an expert biomedical information extraction system.
 
-Your task: Given a paragraph from a biomedical research article, extract
+Your task: Given a paragraph from a biomedical research article, or a textual
+representation of a biomedical results table, extract
 ALL biomedical triplets with fields:
 
 - subject (entity name)

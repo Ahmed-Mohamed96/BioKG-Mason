@@ -11,7 +11,7 @@ from .llm import (
     OpenAIEmbeddingsClient,
     SentenceTransformersEmbeddingsClient,
 )
-from .pdf import PDFReader
+from .pdf import PDFReader, DocSegment
 from .kg import Neo4jClient, EntityMatcher, SchemaMatcher
 from .agents import TripletExtractor, EntityMatchValidator
 from .models import Triplet
@@ -64,6 +64,7 @@ class PDFToKGPipeline:
             uri=cfg.neo4j.uri,
             user=cfg.neo4j.user,
             password=cfg.neo4j.password,
+            database=cfg.neo4j.database,
         )
 
         self.pdf_reader = PDFReader()
@@ -79,6 +80,23 @@ class PDFToKGPipeline:
             embeddings_client=self.embeddings_client,
             similarity_threshold=self.cfg.pipeline.similarity_threshold,
         )
+
+    @staticmethod
+    def _segment_to_prompt_text(segment: DocSegment) -> str:
+        """
+        Convert a DocSegment (paragraph or table) to the text that will be
+        fed to the TripletExtractor.
+        """
+        if segment.kind == "paragraph":
+            return segment.text
+        else:
+            # For tables, prepend a hint so the LLM understands context
+            return (
+                "The following is a biomedical results table flattened into text.\n"
+                "Each line is a row, and each 'column: value' is a cell.\n\n"
+                + segment.text
+
+            )
 
     def _validate_entity_match(
         self,
@@ -117,38 +135,48 @@ class PDFToKGPipeline:
             # Reject the match: treat as new entity
             entity.entity_id = None
 
-    def _process_triplet(self, triplet: Triplet, pmid: str, paragraph: str):
+    def _process_triplet(
+        self,
+        triplet: Triplet,
+        pmid: str,
+        source_text: str,
+        source_kind: str,
+        page: int,
+        table_index: Optional[int] = None,
+    ):
         """
         Resolve entities, validate matches via LLM, normalize schema via LLM,
         and persist triplet to Neo4j with full provenance.
+        `source_text` can be a paragraph or a flattened table.
         """
-        # 1. Resolve entities using embeddings against existing nodes
+        # 1. Resolve entities using embeddings
         resolved_triplet, embeddings_map, matches_map = self.entity_matcher.resolve_triplet(
             triplet
         )
 
         print(f"[Triplet] [Resolved] {resolved_triplet.subject.name} - {resolved_triplet.predicate} >> {resolved_triplet.obj.name}")
 
-        # 2. Let LLM validate whether the embedding-based matches are correct
+        # 2. LLM validates whether embedding-based matches are correct.
+        #    Use source_text as "context" (paragraph or table text).
         self._validate_entity_match(
             role="subject",
             triplet=resolved_triplet,
-            paragraph=paragraph,
+            paragraph=source_text,
             match_info=matches_map.get("subject"),
         )
         self._validate_entity_match(
             role="object",
             triplet=resolved_triplet,
-            paragraph=paragraph,
+            paragraph=source_text,
             match_info=matches_map.get("object"),
         )
 
-        # 3. Normalize schema (entity labels and relationship type) via LLM
+        # 3. Normalize schema via LLM
         normalized_triplet = self.schema_matcher.normalize_triplet(resolved_triplet)
 
         print(f"[Triplet] [Schema-Normalized] {normalized_triplet.subject.name} - {normalized_triplet.predicate} >> {normalized_triplet.obj.name}")
 
-        # 4. Upsert subject and object nodes with final labels
+        # 4. Upsert subject and object nodes
         subj = normalized_triplet.subject
         obj = normalized_triplet.obj
 
@@ -159,16 +187,16 @@ class PDFToKGPipeline:
             name=subj.name,
             label=subj.type or "BIO_ENTITY",
             embedding=subj_emb,
-            entity_id=subj.entity_id,  # None => new node
+            entity_id=subj.entity_id,
         )
         obj_entity_id = self.kg_client.upsert_entity(
             name=obj.name,
             label=obj.type or "BIO_ENTITY",
             embedding=obj_emb,
-            entity_id=obj.entity_id,  # None => new node
+            entity_id=obj.entity_id,
         )
 
-        # Update local entity cache in EntityMatcher for future matches
+        # Update local cache
         self.entity_matcher.register_new_entity(
             {
                 "entity_id": subj_entity_id,
@@ -186,37 +214,54 @@ class PDFToKGPipeline:
             }
         )
 
-        # 5. Create relationship with provenance (PMID, paragraph)
+        # 5. Create relationship with extended provenance
         self.kg_client.create_relationship(
             subj_entity_id=subj_entity_id,
             obj_entity_id=obj_entity_id,
             rel_type=normalized_triplet.predicate,
             pmid=pmid,
-            paragraph=paragraph,
+            source_text=source_text,
+            source_kind=source_kind,
+            page=page,
+            table_index=table_index,
         )
 
     def process_pdf(self, pdf_path: str):
         """
         Process a single PDF file into the KG.
         Assumes filename (without extension) is the PMID.
+        Now processes both paragraphs and tables.
         """
         pmid = Path(pdf_path).stem
-        paragraphs = self.pdf_reader.extract_paragraphs(pdf_path)
+        segments = self.pdf_reader.extract_segments(pdf_path)
 
         counter = 1
-        for paragraph in paragraphs:
-            print(f"========== Paragraph {counter} ==========")
-            print(paragraph)
+        for seg in segments:
+            print(f"========== Segment {counter} ==========")
+            print(seg)
             print(f"-----------------------------------------")
             print("\n")
-            triplets: List[Triplet] = self.triplet_extractor.extract_triplets(paragraph)
+            source_text = self._segment_to_prompt_text(seg)
+            triplets: List[Triplet] = self.triplet_extractor.extract_triplets(source_text)
+
             triplet_counter = 1
             for triplet in triplets:
                 print(f"[Triplet {triplet_counter}] [Original] {triplet.subject.name} - {triplet.predicate} >> {triplet.obj.name}")
                 # Attach provenance to triplet metadata (optional)
                 triplet.metadata["pmid"] = pmid
-                triplet.metadata["paragraph"] = paragraph
-                self._process_triplet(triplet, pmid, paragraph)
+                triplet.metadata["source_kind"] = seg.kind
+                triplet.metadata["page"] = seg.page
+                triplet.metadata["table_index"] = seg.table_index
+
+                self._process_triplet(
+                    triplet=triplet,
+                    pmid=pmid,
+                    source_text=source_text,
+                    source_kind=seg.kind,
+                    page=seg.page,
+                    table_index=seg.table_index,
+                )
+
                 triplet_counter += 1
                 print("\n")
                 print(f"-----------------------------------------")

@@ -33,8 +33,8 @@ class Neo4jClient:
     Thin wrapper around Neo4j driver for entity/relationship operations.
     """
 
-    def __init__(self, uri: str, user: str, password: str):
-        self.driver = GraphDatabase.driver(uri, auth=(user, password))
+    def __init__(self, uri: str, user: str, password: str, database: str):
+        self.driver = GraphDatabase.driver(uri, auth=(user, password), database=database)
 
     def close(self):
         self.driver.close()
@@ -101,10 +101,16 @@ class Neo4jClient:
         obj_entity_id: str,
         rel_type: str,
         pmid: str,
-        paragraph: str,
+        source_text: str,
+        source_kind: str = "paragraph",   # "paragraph" or "table"
+        page: Optional[int] = None,
+        table_index: Optional[int] = None,
     ) -> None:
         """
         Create a relationship between two entities with provenance.
+        source_kind: "paragraph" or "table"
+        page: page number in PDF
+        table_index: index of table on page (0-based), if any
         """
         rel_type = _sanitize_rel_type(rel_type)
         query = f"""
@@ -112,7 +118,10 @@ class Neo4jClient:
         MATCH (o {{entity_id: $obj_id}})
         MERGE (s)-[r:`{rel_type}` {{
             pmid: $pmid,
-            paragraph: $paragraph
+            source_text: $source_text,
+            source_kind: $source_kind,
+            page: $page,
+            table_index: $table_index
         }}]->(o)
         RETURN id(r) AS rel_id
         """
@@ -120,7 +129,10 @@ class Neo4jClient:
             "subj_id": subj_entity_id,
             "obj_id": obj_entity_id,
             "pmid": pmid,
-            "paragraph": paragraph,
+            "source_text": source_text,
+            "source_kind": source_kind,
+            "page": page,
+            "table_index": table_index,
         }
         with self.driver.session() as session:
             session.run(query, **params)
