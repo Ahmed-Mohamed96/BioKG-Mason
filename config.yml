@@ -13,7 +13,7 @@ neo4j:
   database: propresyn-gba-seed
 
 pdf:
-  input_dir: ./pdfs          # folder containing PDF files named by PMID
+  input_dir: ./tests/pdfs          # folder containing PDF files named by PMID
 
 pipeline:
   similarity_threshold: 0.85 # cosine similarity threshold for entity matching
