@@ -1,0 +1,18 @@
+llm:
+  provider: openai           # "openai" or "ollama"
+  model: gpt-4o-mini         # LLM model name
+
+embeddings:
+  provider: openai           # "openai" or "sentence-transformers"
+  model: text-embedding-3-large
+
+neo4j:
+  uri: bolt://localhost:7687
+  user: neo4j
+  password: password
+
+pdf:
+  input_dir: ./pdfs          # folder containing PDF files named by PMID
+
+pipeline:
+  similarity_threshold: 0.82 # cosine similarity threshold for entity matching
