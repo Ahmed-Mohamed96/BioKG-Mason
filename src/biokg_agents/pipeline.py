@@ -127,6 +127,8 @@ class PDFToKGPipeline:
             triplet
         )
 
+        print(f"[Triplet] [Resolved] {resolved_triplet.subject.name} - {resolved_triplet.predicate} >> {resolved_triplet.obj.name}")
+
         # 2. Let LLM validate whether the embedding-based matches are correct
         self._validate_entity_match(
             role="subject",
@@ -143,6 +145,8 @@ class PDFToKGPipeline:
 
         # 3. Normalize schema (entity labels and relationship type) via LLM
         normalized_triplet = self.schema_matcher.normalize_triplet(resolved_triplet)
+
+        print(f"[Triplet] [Schema-Normalized] {normalized_triplet.subject.name} - {normalized_triplet.predicate} >> {normalized_triplet.obj.name}")
 
         # 4. Upsert subject and object nodes with final labels
         subj = normalized_triplet.subject
@@ -199,13 +203,25 @@ class PDFToKGPipeline:
         pmid = Path(pdf_path).stem
         paragraphs = self.pdf_reader.extract_paragraphs(pdf_path)
 
+        counter = 1
         for paragraph in paragraphs:
+            print(f"========== Paragraph {counter} ==========")
+            print(paragraph)
+            print(f"-----------------------------------------")
+            print("\n")
             triplets: List[Triplet] = self.triplet_extractor.extract_triplets(paragraph)
+            triplet_counter = 1
             for triplet in triplets:
+                print(f"[Triplet {triplet_counter}] [Original] {triplet.subject.name} - {triplet.predicate} >> {triplet.obj.name}")
                 # Attach provenance to triplet metadata (optional)
                 triplet.metadata["pmid"] = pmid
                 triplet.metadata["paragraph"] = paragraph
                 self._process_triplet(triplet, pmid, paragraph)
+                triplet_counter += 1
+                print("\n")
+                print(f"-----------------------------------------")
+            counter += 1
+            print(f"=========================================")
 
     def process_all_pdfs(self):
         """
@@ -215,6 +231,7 @@ class PDFToKGPipeline:
         pdf_files = sorted(pdf_dir.glob("*.pdf"))
 
         for pdf_file in pdf_files:
+            print(f"[PDF] Process Article: {Path(pdf_file).stem}")
             self.process_pdf(str(pdf_file))
 
     def close(self):
