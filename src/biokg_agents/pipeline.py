@@ -1,13 +1,14 @@
 from pathlib import Path
 from typing import List, Optional, Dict
 
+from langchain_core.language_models import BaseChatModel
+from langchain_openai import ChatOpenAI
+from langchain_community.chat_models import ChatOllama
+
 from .config import Config
 from .llm import (
-    LLMClient,
     EmbeddingsClient,
-    OpenAILLMClient,
     OpenAIEmbeddingsClient,
-    OllamaLLMClient,
     SentenceTransformersEmbeddingsClient,
 )
 from .pdf import PDFReader
@@ -16,12 +17,17 @@ from .agents import TripletExtractor, EntityMatchValidator
 from .models import Triplet
 
 
-def _build_llm_client(cfg: Config) -> LLMClient:
+def _build_chat_model(cfg: Config) -> BaseChatModel:
+    """
+    Build a LangChain chat model (ChatOpenAI or ChatOllama)
+    based on config.llm.provider and config.llm.model.
+    """
     provider = cfg.llm.provider.lower()
     if provider == "openai":
-        return OpenAILLMClient(model=cfg.llm.model)
+        # OPENAI_API_KEY is read from environment by ChatOpenAI
+        return ChatOpenAI(model=cfg.llm.model, temperature=0.0)
     elif provider == "ollama":
-        return OllamaLLMClient(model=cfg.llm.model)
+        return ChatOllama(model=cfg.llm.model, temperature=0.0)
     else:
         raise ValueError(f"Unsupported LLM provider: {cfg.llm.provider}")
 
@@ -48,7 +54,10 @@ class PDFToKGPipeline:
     def __init__(self, cfg: Config):
         self.cfg = cfg
 
-        self.llm_client = _build_llm_client(cfg)
+        # LangChain chat model (OpenAI or Ollama)
+        self.chat_model = _build_chat_model(cfg)
+
+        # Embeddings (OpenAI or sentence-transformers)
         self.embeddings_client = _build_embeddings_client(cfg)
 
         self.kg_client = Neo4jClient(
@@ -58,20 +67,18 @@ class PDFToKGPipeline:
         )
 
         self.pdf_reader = PDFReader()
-        self.triplet_extractor = TripletExtractor(self.llm_client)
 
-        # Embedding-based matcher
+        # LLM-based agents
+        self.triplet_extractor = TripletExtractor(self.chat_model)
+        self.entity_match_validator = EntityMatchValidator(self.chat_model)
+        self.schema_matcher = SchemaMatcher(self.kg_client, self.chat_model)
+
+        # Embedding-based entity matcher
         self.entity_matcher = EntityMatcher(
             kg_client=self.kg_client,
             embeddings_client=self.embeddings_client,
-            similarity_threshold=cfg.pipeline.similarity_threshold,
+            similarity_threshold=self.cfg.pipeline.similarity_threshold,
         )
-
-        # LLM-based validator for entity matches
-        self.entity_match_validator = EntityMatchValidator(self.llm_client)
-
-        # LLM-based schema matcher
-        self.schema_matcher = SchemaMatcher(self.kg_client, self.llm_client)
 
     def _validate_entity_match(
         self,

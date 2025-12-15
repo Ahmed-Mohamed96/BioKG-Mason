@@ -1,12 +1,18 @@
 # biokg/agents/entity_match_validator.py
 
-import json
-from typing import List, Dict, Optional
+from typing import List
 
-from ..llm import LLMClient
+from pydantic import BaseModel
+from langchain_core.language_models import BaseChatModel
+from langchain_core.prompts import ChatPromptTemplate
 
 
-ENTITY_MATCH_VALIDATION_PROMPT = """
+class EntityMatchValidationResult(BaseModel):
+    is_same_entity: bool
+    reason: str
+
+
+SYSTEM_PROMPT = """
 You are an expert biomedical entity disambiguation system.
 
 You will be given:
@@ -20,33 +26,11 @@ Your task:
 Determine if, in the context of the paragraph, the mention refers to the SAME
 biomedical entity as the candidate node.
 
-Answer the question:
-"Does the mention refer to this candidate entity?"
-
 Rules:
 - Consider biological meaning and context, not just string similarity.
 - If you are unsure, answer "false" (i.e., do NOT merge them).
 
-Return ONLY valid JSON in this format:
-
-{{
-  "is_same_entity": true,
-  "reason": "short explanation"
-}}
-
-Now analyze:
-
-Paragraph:
-\"\"\"{paragraph}\"\"\"
-
-Mention in the paragraph:
-"{mention}"
-
-Candidate node:
-- name: "{candidate_name}"
-- labels: {candidate_labels}
-
-Is the mention the SAME biomedical entity as this candidate node?
+You MUST output data that conforms exactly to the provided JSON schema.
 """
 
 
@@ -56,11 +40,30 @@ class EntityMatchValidator:
     is semantically correct given the paragraph context.
 
     If the validator rejects the match (is_same_entity = false),
-    the pipeline will treat the entity as NEW and create a new node.
+    the pipeline should treat the entity as NEW and create a new node.
     """
 
-    def __init__(self, llm_client: LLMClient):
-        self.llm = llm_client
+    def __init__(self, chat_model: BaseChatModel):
+        self.chat_model = chat_model
+
+        self.prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", SYSTEM_PROMPT),
+                (
+                    "human",
+                    "Paragraph:\n\"\"\"{paragraph}\"\"\"\n\n"
+                    "Mention in the paragraph:\n\"{mention}\"\n\n"
+                    "Candidate node:\n"
+                    "- name: \"{candidate_name}\"\n"
+                    "- labels: {candidate_labels}\n\n"
+                    "Does the mention refer to this candidate entity?\n",
+                ),
+            ]
+        )
+
+        self.chain = self.prompt | self.chat_model.with_structured_output(
+            EntityMatchValidationResult
+        )
 
     def validate_match(
         self,
@@ -73,28 +76,12 @@ class EntityMatchValidator:
         Return True if the LLM confirms that the mention and candidate node
         refer to the same entity; False otherwise.
         """
-        prompt = ENTITY_MATCH_VALIDATION_PROMPT.format(
-            paragraph=paragraph,
-            mention=mention,
-            candidate_name=candidate_name,
-            candidate_labels=candidate_labels,
+        result: EntityMatchValidationResult = self.chain.invoke(
+            {
+                "paragraph": paragraph,
+                "mention": mention,
+                "candidate_name": candidate_name,
+                "candidate_labels": candidate_labels,
+            }
         )
-        raw = self.llm.generate(prompt)
-
-        try:
-            start = raw.index("{")
-            end = raw.rindex("}") + 1
-            raw_json = raw[start:end]
-        except ValueError:
-            # No JSON found; be conservative and reject the match
-            return False
-
-        try:
-            data: Dict = json.loads(raw_json)
-        except json.JSONDecodeError:
-            # Invalid JSON; be conservative and reject the match
-            return False
-
-        is_same = data.get("is_same_entity")
-        # If not explicitly true, treat as False
-        return bool(is_same) is True
+        return bool(result.is_same_entity)

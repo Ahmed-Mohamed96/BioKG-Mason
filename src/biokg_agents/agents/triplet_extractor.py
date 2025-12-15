@@ -1,90 +1,81 @@
-import json
-from typing import List
+# biokg/agents/triplet_extractor.py
 
-from ..llm import LLMClient
+from typing import List, Optional
+
+from pydantic import BaseModel, Field
+from langchain_core.language_models import BaseChatModel
+from langchain_core.prompts import ChatPromptTemplate
+
 from ..models import Entity, Triplet
 
 
-TRIPLET_EXTRACTION_PROMPT = """
+class TripletItem(BaseModel):
+    subject: str
+    subject_type: Optional[str] = None
+    predicate: str
+    object: str
+    object_type: Optional[str] = None
+
+
+class TripletList(BaseModel):
+    triplets: List[TripletItem] = Field(default_factory=list)
+
+
+SYSTEM_PROMPT = """
 You are an expert biomedical information extraction system.
 
-Given the following paragraph from a biomedical research article,
-extract *all* biomedical triplets of the form:
+Your task: Given a paragraph from a biomedical research article, extract
+ALL biomedical triplets with fields:
 
-- subject (entity)
-- predicate (relationship phrase)
-- object (entity)
+- subject (entity name)
 - subject_type (e.g., protein, gene, RNA, disease, drug, cell line, pathway, etc.)
+- predicate (relationship phrase)
+- object (entity name)
 - object_type (same as subject_type)
-
-Return ONLY valid JSON with the following structure:
-
-[
-  {
-    "subject": "...",
-    "subject_type": "...",
-    "predicate": "...",
-    "object": "...",
-    "object_type": "..."
-  },
-  ...
-]
 
 Rules:
 - Only include triplets that are biomedical and meaningful.
 - Use concise but specific names for entities (e.g., "TNF-alpha", "p53", "breast cancer").
-- Use natural language predicates that are causal/mechanistic/functional (e.g., "inhibits", "activates", "increases_levels_of").
-- If you are unsure about the type, guess the closest from: protein, gene, RNA, disease, drug, pathway, cell line, cell, tissue, hormone, micro RNA, cytokine.
+- Use natural language predicates that are causal/mechanistic (e.g., "inhibits", "activates", "increases").
 
-Paragraph:
+You MUST output data that conforms exactly to the provided JSON schema.
 """
 
 
 class TripletExtractor:
     """
-    Agent that extracts biomedical triplets from paragraphs using an LLM.
+    Agent that extracts biomedical triplets from paragraphs using a LangChain
+    chat model (ChatOpenAI or ChatOllama) with structured output.
     """
 
-    def __init__(self, llm_client: LLMClient):
-        self.llm = llm_client
+    def __init__(self, chat_model: BaseChatModel):
+        """
+        :param chat_model: A LangChain BaseChatModel (ChatOpenAI or ChatOllama).
+        """
+        self.chat_model = chat_model
+
+        self.prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", SYSTEM_PROMPT),
+                ("human", "Paragraph:\n{paragraph}"),
+            ]
+        )
+
+        # Wrap the chat model to enforce TripletList schema
+        self.chain = self.prompt | self.chat_model.with_structured_output(TripletList)
 
     def extract_triplets(self, paragraph: str) -> List[Triplet]:
         """
-        Run LLM to extract triplets from a paragraph.
+        Extract structured triplets from a paragraph.
+
+        Uses LangChain structured output to guarantee JSON schema compliance.
         """
-        prompt = TRIPLET_EXTRACTION_PROMPT + paragraph
-        raw = self.llm.generate(prompt)
-
-        # Try to parse JSON; handle wrapping text by finding first '['
-        try:
-            start = raw.index("[")
-            end = raw.rindex("]") + 1
-            raw_json = raw[start:end]
-        except ValueError:
-            return []
-
-        try:
-            data = json.loads(raw_json)
-        except json.JSONDecodeError:
-            return []
+        result: TripletList = self.chain.invoke({"paragraph": paragraph})
 
         triplets: List[Triplet] = []
-        if not isinstance(data, list):
-            return triplets
-
-        for item in data:
-            try:
-                subj = Entity(
-                    name=item["subject"],
-                    type=item.get("subject_type"),
-                )
-                obj = Entity(
-                    name=item["object"],
-                    type=item.get("object_type"),
-                )
-                pred = item["predicate"]
-                triplets.append(Triplet(subject=subj, predicate=pred, obj=obj))
-            except KeyError:
-                continue
+        for item in result.triplets:
+            subj = Entity(name=item.subject, type=item.subject_type)
+            obj = Entity(name=item.object, type=item.object_type)
+            triplets.append(Triplet(subject=subj, predicate=item.predicate, obj=obj))
 
         return triplets
