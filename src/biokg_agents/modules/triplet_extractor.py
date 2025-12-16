@@ -43,8 +43,16 @@ Rules:
         1- Subject="A", relation="increases", object="B"
         2- Subject="A", relation="increases", object="C"
 - Use predicates with no specific causal effect, like modulates, regulates, and associated_with, ONLY when there is no other choice that the text can provide.
-- Subject and Object should be specific biomedical entities. For example, extracting a triplet like (Subject="Drug A", relation="increases", object="Protein B levels") is not favored, because "Protein B levels" is a measure, not a biomedical entity.
-    Therefore, a better format of the triplet is (Subject="Drug A", relation="increases_levels_of", object="Protein B").
+- Subject and Object must be specific biomedical entities. For example, formating triplets like:
+
+    - Subject="Drug A", relation="increases", object="Protein B levels"
+    - Subject="Gene C", relation="supports", object="Cell E composition"
+
+  is not a good practice, because "Protein B levels" is not a biomedical entity but a measure of a biomedical entity, and "Cell E composition" is not a biomedical entity, but an attribute of a biomedical entity. Therefore, better formats of the triplets are:
+    
+    - Subject="Drug A", relation="increases_levels_of", object="Protein B"
+    - Subject="Gene C", relation="supports_composition_of", object="Cell E"
+
 
 You MUST output data that conforms exactly to the provided JSON schema.
 """
