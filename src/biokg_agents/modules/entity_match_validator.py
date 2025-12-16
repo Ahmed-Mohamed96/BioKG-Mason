@@ -1,5 +1,3 @@
-# biokg/agents/entity_match_validator.py
-
 from typing import List
 
 from pydantic import BaseModel

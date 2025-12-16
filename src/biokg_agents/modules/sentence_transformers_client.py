@@ -1,9 +1,5 @@
-# src/biokg_agents/modules/sentence_transformers_client.py
-
 from typing import List
-
 from sentence_transformers import SentenceTransformer
-
 from .base import EmbeddingsClient
 
 

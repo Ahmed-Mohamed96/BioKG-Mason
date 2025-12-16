@@ -1,5 +1,3 @@
-# src/biokg_agents/modules/openai_client.py
-
 import os
 from typing import List
 from openai import OpenAI

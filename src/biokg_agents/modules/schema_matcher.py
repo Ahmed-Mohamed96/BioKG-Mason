@@ -1,5 +1,3 @@
-# biokg/kg/schema_matcher.py
-
 from typing import List, Set, Tuple, Optional
 from pathlib import Path
 import json

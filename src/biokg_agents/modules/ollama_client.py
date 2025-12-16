@@ -1,5 +1,3 @@
-# biokg/llm/ollama_client.py
-
 import requests
 from typing import List
 
