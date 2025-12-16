@@ -176,7 +176,7 @@ class PDFToKGPipeline:
         )
 
         # 3. Normalize schema via LLM
-        normalized_triplet = self.schema_matcher.normalize_triplet(resolved_triplet)
+        normalized_triplet = self.schema_matcher.normalize_triplet(resolved_triplet, source_text)
 
         print(f"[Triplet] [Schema-Normalized] {normalized_triplet.subject.name} - {normalized_triplet.predicate} >> {normalized_triplet.obj.name}")
 

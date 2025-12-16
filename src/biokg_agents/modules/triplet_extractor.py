@@ -38,6 +38,11 @@ Rules:
 - Only include triplets that are biomedical and meaningful.
 - Use concise but specific names for entities (e.g., "TNF-alpha", "p53", "breast cancer").
 - Use natural language predicates that are causal/mechanistic (e.g., "inhibits", "activates", "increases").
+- If a triplet has an entity (subject or object) representing more than biomedical entity, split the triplet into multiple ones such that each triplet has subject and object refering to one biomedical entity each.
+    for example, Subject="A", relation="increases", object="B and C" should be splitted to:
+        1- Subject="A", relation="increases", object="B"
+        2- Subject="A", relation="increases", object="C"
+- Use predicates with no specific causal effect, like modulates, regulates, and associated_with, ONLY when there is no other choice that the text can provide.
 
 You MUST output data that conforms exactly to the provided JSON schema.
 """

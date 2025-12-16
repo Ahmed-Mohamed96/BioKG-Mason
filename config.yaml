@@ -17,4 +17,4 @@ pdf:
   input_dir: ./tests/pdfs          # folder containing PDF files named by PMID
 
 pipeline:
-  similarity_threshold: 0.85 # cosine similarity threshold for entity matching
+  similarity_threshold: 0.75 # cosine similarity threshold for entity matching
