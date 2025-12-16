@@ -76,7 +76,9 @@ class PDFToKGPipeline:
         # LLM-based agents
         self.triplet_extractor = TripletExtractor(self.chat_model)
         self.entity_match_validator = EntityMatchValidator(self.chat_model)
-        self.schema_matcher = SchemaMatcher(self.kg_client, self.chat_model)
+
+        schema_path = self.cfg.schema.file if self.cfg.schema else None
+        self.schema_matcher = SchemaMatcher(self.kg_client, self.chat_model, schema_path=schema_path,)
 
         # Embedding-based entity matcher
         self.entity_matcher = EntityMatcher(

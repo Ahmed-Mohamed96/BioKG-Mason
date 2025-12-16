@@ -1,6 +1,8 @@
 # biokg/kg/schema_matcher.py
 
-from typing import List
+from typing import List, Set, Tuple, Optional
+from pathlib import Path
+import json
 
 from pydantic import BaseModel
 from langchain_core.language_models import BaseChatModel
@@ -53,13 +55,21 @@ If you are unsure, choose the closest reasonable labels and relationship type.
 
 class SchemaMatcher:
     """
-    LLM-based schema matcher that normalizes entity labels and relationship types
-    using a LangChain chat model (ChatOpenAI or ChatOllama) with structured output.
+    LLM-based schema matcher that:
+    - Loads initial labels and relationship types from a JSON schema file.
+    - Merges them with labels/types discovered in the KG.
+    - Maintains an in-memory cache of known labels/types and updates it with every normalization.
     """
 
-    def __init__(self, kg_client: Neo4jClient, chat_model: BaseChatModel):
+    def __init__(self, kg_client: Neo4jClient, chat_model: BaseChatModel, schema_path: Optional[str] = None):
         self.kg = kg_client
         self.chat_model = chat_model
+
+        # Initialize cache of known labels and relationship types
+        (
+            self.known_entity_labels,
+            self.known_relationship_types,
+        ) = self._init_schema_cache(schema_path)
 
         self.prompt = ChatPromptTemplate.from_messages(
             [
@@ -81,30 +91,56 @@ class SchemaMatcher:
 
         self.chain = self.prompt | self.chat_model.with_structured_output(SchemaMatchResult)
 
-    def normalize_triplet(self, triplet: Triplet, reference_text: str) -> Triplet:
+
+    def _init_schema_cache(
+        self, schema_path: Optional[str]
+    ) -> Tuple[Set[str], Set[str]]:
+        labels: Set[str] = set()
+        rel_types: Set[str] = set()
+
+        # 1) Load from JSON schema file if provided
+        if schema_path:
+            path = Path(schema_path)
+            if path.is_file():
+                with path.open("r") as f:
+                    data = json.load(f)
+                labels.update(data.get("node_labels", []))
+                rel_types.update(data.get("relationship_types", []))
+
+        # 2) Merge with any existing labels/types from the KG
+        labels.update(self.kg.get_existing_labels())
+        rel_types.update(self.kg.get_existing_relationship_types())
+
+        return labels, rel_types
+
+    def normalize_triplet(self, triplet: Triplet) -> Triplet:
         """
         Ask the LLM to normalize the triplet's subject type, object type,
-        and relationship type based on existing labels and relationship types
-        in the KG.
+        and relationship type based on the current cache of known
+        labels and relationship types.
         """
-        existing_labels = self.kg.get_existing_labels()
-        existing_rels = self.kg.get_existing_relationship_types()
-
         result: SchemaMatchResult = self.chain.invoke(
             {
-                "existing_labels": existing_labels,
-                "existing_rels": existing_rels,
+                "existing_labels": sorted(self.known_entity_labels),
+                "existing_rels": sorted(self.known_relationship_types),
                 "subject_name": triplet.subject.name,
                 "subject_type_hint": triplet.subject.type or "",
                 "predicate": triplet.predicate,
                 "object_name": triplet.obj.name,
                 "object_type_hint": triplet.obj.type or "",
-                "reference_text": reference_text,
             }
         )
 
-        triplet.subject.type = result.subject_label or triplet.subject.type
-        triplet.obj.type = result.object_label or triplet.obj.type
-        triplet.predicate = result.relationship_type or triplet.predicate
+        subj_label = result.subject_label or triplet.subject.type
+        obj_label = result.object_label or triplet.obj.type
+        rel_type = result.relationship_type or triplet.predicate
+
+        triplet.subject.type = subj_label
+        triplet.obj.type = obj_label
+        triplet.predicate = rel_type
+
+        # Update in-memory cache with any new labels/types the LLM introduces
+        self.known_entity_labels.update([subj_label, obj_label])
+        self.known_relationship_types.add(rel_type)
 
         return triplet

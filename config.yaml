@@ -1,7 +1,7 @@
 llm:
   provider: openai           # "openai" or "ollama"
   model: gpt-5         # LLM model name
-  temperature: 0.0
+  temperature: 0.0     # LLM Temperature (0.0 to 1.0)
 
 embeddings:
   provider: ollama           # "openai" or "ollama"
@@ -18,3 +18,6 @@ pdf:
 
 pipeline:
   similarity_threshold: 0.75 # cosine similarity threshold for entity matching
+
+schema:
+  file: schema.json      # path to your initial schema file

@@ -34,6 +34,10 @@ class PDFConfig:
 class PipelineConfig:
     similarity_threshold: float = 0.82
 
+@dataclass
+class SchemaConfig:
+    file: str
+
 
 @dataclass
 class Config:
@@ -63,4 +67,27 @@ def load_config(path: str) -> Config:
         neo4j=neo4j_cfg,
         pdf=pdf_cfg,
         pipeline=pipeline_cfg,
+    )
+
+def load_config(path: str) -> Config:
+    with open(path, "r") as f:
+        raw: Dict[str, Any] = yaml.safe_load(f)
+
+    llm_cfg = LLMConfig(**raw["llm"])
+    emb_cfg = EmbeddingsConfig(**raw["embeddings"])
+    neo4j_cfg = Neo4jConfig(**raw["neo4j"])
+    pdf_cfg = PDFConfig(**raw["pdf"])
+    pipeline_cfg = PipelineConfig(**raw.get("pipeline", {}))
+
+    schema_cfg = None
+    if "schema" in raw:
+        schema_cfg = SchemaConfig(**raw["schema"])
+
+    return Config(
+        llm=llm_cfg,
+        embeddings=emb_cfg,
+        neo4j=neo4j_cfg,
+        pdf=pdf_cfg,
+        pipeline=pipeline_cfg,
+        schema=schema_cfg,
     )
