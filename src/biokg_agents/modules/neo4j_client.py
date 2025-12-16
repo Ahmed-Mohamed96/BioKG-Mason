@@ -107,24 +107,28 @@ class Neo4jClient:
         table_index: Optional[int] = None,
     ) -> None:
         """
-        Create a relationship between two entities with provenance.
-        source_kind: "paragraph" or "table"
-        page: page number in PDF
-        table_index: index of table on page (0-based), if any
+        Create or reuse a relationship between two entities with provenance.
+
+        Note:
+        - We MERGE only on the pattern (s)-[r:TYPE]->(o) without properties.
+        - Then we SET properties, which can safely include nulls (they get removed).
+
+        This avoids Neo4j's error about MERGE with null property values.
         """
         rel_type = _sanitize_rel_type(rel_type)
+
         query = f"""
         MATCH (s {{entity_id: $subj_id}})
         MATCH (o {{entity_id: $obj_id}})
-        MERGE (s)-[r:`{rel_type}` {{
-            pmid: $pmid,
-            source_text: $source_text,
-            source_kind: $source_kind,
-            page: $page,
-            table_index: $table_index
-        }}]->(o)
-        RETURN id(r) AS rel_id
+        MERGE (s)-[r:`{rel_type}`]->(o)
+        SET r.pmid = $pmid,
+            r.source_text = $source_text,
+            r.source_kind = $source_kind,
+            r.page = $page,
+            r.table_index = $table_index
+        RETURN elementId(r) AS rel_id
         """
+
         params = {
             "subj_id": subj_entity_id,
             "obj_id": obj_entity_id,
@@ -134,8 +138,15 @@ class Neo4jClient:
             "page": page,
             "table_index": table_index,
         }
+
         with self.driver.session() as session:
-            session.run(query, **params)
+            result = session.run(query, **params)
+            record = result.single()
+            rel_id = record["rel_id"] if record is not None else None
+            print(
+                f"[Neo4j] create_relationship: subj={subj_entity_id}, "
+                f"obj={obj_entity_id}, rel_type={rel_type}, rel_id={rel_id}"
+            )
 
     def get_existing_labels(self) -> List[str]:
         query = "CALL db.labels() YIELD label RETURN label"

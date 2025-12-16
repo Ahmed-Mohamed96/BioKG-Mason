@@ -1,3 +1,5 @@
+# src/biokg_agents/modules/sentence_transformers_client.py
+
 from typing import List
 
 from sentence_transformers import SentenceTransformer
@@ -19,7 +21,7 @@ class SentenceTransformersEmbeddingsClient(EmbeddingsClient):
                       e.g. "sentence-transformers/all-mpnet-base-v2"
         """
         self.model_name = model
-        self.model = SentenceTransformer(model)
+        self.model = SentenceTransformer(model, trust_remote_code=True)
 
     def embed(self, text: str) -> List[float]:
         embedding = self.model.encode(text, convert_to_numpy=True)

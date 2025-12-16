@@ -6,15 +6,18 @@ from langchain_openai import ChatOpenAI
 from langchain_community.chat_models import ChatOllama
 
 from .config import Config
-from .llm import (
-    EmbeddingsClient,
-    OpenAIEmbeddingsClient,
-    SentenceTransformersEmbeddingsClient,
-)
-from .pdf import PDFReader, DocSegment
-from .kg import Neo4jClient, EntityMatcher, SchemaMatcher
-from .agents import TripletExtractor, EntityMatchValidator
-from .models import Triplet
+from .modules.base import EmbeddingsClient
+from .modules.sentence_transformers_client import SentenceTransformersEmbeddingsClient
+from .modules.openai_client import OpenAIEmbeddingsClient
+from .modules.pdf_reader import PDFReader, DocSegment
+from .modules.neo4j_client import Neo4jClient
+from .modules.entity_matcher import EntityMatcher
+from .modules.schema_matcher import SchemaMatcher
+from .modules.triplet_extractor import TripletExtractor
+from .modules.entity_match_validator import EntityMatchValidator
+from .modules.triplets import Triplet
+
+from tqdm import tqdm
 
 
 def _build_chat_model(cfg: Config) -> BaseChatModel:
@@ -23,11 +26,12 @@ def _build_chat_model(cfg: Config) -> BaseChatModel:
     based on config.llm.provider and config.llm.model.
     """
     provider = cfg.llm.provider.lower()
+    temp = cfg.llm.temperature
     if provider == "openai":
         # OPENAI_API_KEY is read from environment by ChatOpenAI
-        return ChatOpenAI(model=cfg.llm.model, temperature=0.0)
+        return ChatOpenAI(model=cfg.llm.model, temperature=temp)
     elif provider == "ollama":
-        return ChatOllama(model=cfg.llm.model, temperature=0.0)
+        return ChatOllama(model=cfg.llm.model, temperature=temp)
     else:
         raise ValueError(f"Unsupported LLM provider: {cfg.llm.provider}")
 
@@ -236,15 +240,18 @@ class PDFToKGPipeline:
         segments = self.pdf_reader.extract_segments(pdf_path)
 
         counter = 1
-        for seg in segments:
-            print(f"========== Segment {counter} ==========")
-            print(seg)
+        triplet_counter = 1
+        for seg in tqdm(segments, desc="Processing Text Segments", unit="Segment"):
+            print("\n")
+            print("\n")
+            print(f"========== Segment {counter}/{len(segments)} ==========")
+            print(seg.text)
             print(f"-----------------------------------------")
             print("\n")
             source_text = self._segment_to_prompt_text(seg)
             triplets: List[Triplet] = self.triplet_extractor.extract_triplets(source_text)
+            print(f"[SEG {counter}] Number of Triplets = {len(triplets)}")
 
-            triplet_counter = 1
             for triplet in triplets:
                 print(f"[Triplet {triplet_counter}] [Original] {triplet.subject.name} - {triplet.predicate} >> {triplet.obj.name}")
                 # Attach provenance to triplet metadata (optional)

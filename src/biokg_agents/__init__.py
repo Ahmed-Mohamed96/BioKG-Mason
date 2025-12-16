@@ -1,3 +1,5 @@
+# src/biokg_agents/__init__.py
+
 """
 biokg: Convert biomedical PDFs into a Neo4j knowledge graph.
 """

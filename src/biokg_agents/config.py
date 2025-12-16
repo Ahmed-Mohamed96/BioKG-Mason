@@ -8,6 +8,7 @@ import yaml
 class LLMConfig:
     provider: str
     model: str
+    temperature: float = 0.0
 
 
 @dataclass
@@ -21,6 +22,7 @@ class Neo4jConfig:
     uri: str
     user: str
     password: str
+    database: str
 
 
 @dataclass

@@ -1,6 +1,7 @@
 llm:
-  provider: ollama           # "openai" or "ollama"
-  model: qwen3:32b         # LLM model name
+  provider: openai           # "openai" or "ollama"
+  model: gpt-5         # LLM model name
+  temperature: 0.0
 
 embeddings:
   provider: ollama           # "openai" or "ollama"
@@ -9,7 +10,7 @@ embeddings:
 neo4j:
   uri: bolt://localhost:7687
   user: neo4j
-  password: 55555555
+  password: "55555555"
   database: propresyn-gba-seed
 
 pdf:

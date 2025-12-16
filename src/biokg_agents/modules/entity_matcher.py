@@ -1,8 +1,8 @@
 from typing import Dict, List, Optional, Tuple
 import math
 
-from ..llm import EmbeddingsClient
-from ..models import Entity, Triplet
+from .base import EmbeddingsClient
+from .triplets import Entity, Triplet
 from .neo4j_client import Neo4jClient
 
 

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
 
-from ..models import Triplet
+from .triplets import Triplet
 from .neo4j_client import Neo4jClient
 
 
@@ -25,27 +25,27 @@ You will be given:
 3) The list of existing relationship types in the current Neo4j graph.
 
 Your tasks:
-- Choose a normalized label for the subject entity.
-- Choose a normalized label for the object entity.
-- Choose a normalized relationship type for the predicate.
+- Try to choose a normalized label for the subject entity, a normalized label for the object entity, and a normalized relationship type for the predicate without losing the meaning and the representation of functional impact. It is important to preserve the meaning of the triplet.
+- For relationship normalization, always favor labels and relations that describe a specific impact on the object from the subject. For example, 'increases' is favored over 'modulates', and 'activates' is favored over 'regulates', as they describe a causal connection.
 
 Guidelines:
 - Use broad but representative biomedical categories as labels, such as:
 
   PROTEIN, GENE, RNA, MICRO_RNA, DRUG, DISEASE, CELL, CELL_LINE,
-  PATHWAY, TISSUE, HORMONE, CYTOKINE, BIO_ENTITY, etc.
+  PATHWAY, TISSUE, HORMONE, CYTOKINE, etc.
+- Avoid using General and not specific labels like Bio_entity
 - When possible, reuse an existing label from the provided label list if it
 
   has the same meaning. For example:
   - "hormone" or "insulin" -> PROTEIN
   - "micro RNA", "miR-21" -> RNA or MICRO_RNA (choose the most appropriate)
 - Avoid creating multiple labels with the same meaning.
-- Relationship types should be uppercase with underscores (e.g., ACTIVATES, INHIBITS,
+- Relationship types should be uppercase with underscores, and mechanistic/functional/causal (e.g., ACTIVATES, INHIBITS,
 
   BINDS_TO, ASSOCIATED_WITH, CAUSES).
 - When possible, reuse an existing relationship type from the given list
 
-  if it has the same meaning as the predicate.
+  if it has the same causal/functional/mechanestic meaning as the predicate.
 
 You MUST output data that conforms exactly to the provided JSON schema.
 If you are unsure, choose the closest reasonable labels and relationship type.
@@ -102,8 +102,8 @@ class SchemaMatcher:
             }
         )
 
-        triplet.subject.type = result.subject_label or triplet.subject.type or "BIO_ENTITY"
-        triplet.obj.type = result.object_label or triplet.obj.type or "BIO_ENTITY"
+        triplet.subject.type = result.subject_label or triplet.subject.type
+        triplet.obj.type = result.object_label or triplet.obj.type
         triplet.predicate = result.relationship_type or triplet.predicate
 
         return triplet

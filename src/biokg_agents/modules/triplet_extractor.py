@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
 
-from ..models import Entity, Triplet
+from .triplets import Entity, Triplet
 
 
 class TripletItem(BaseModel):
@@ -26,7 +26,7 @@ You are an expert biomedical information extraction system.
 
 Your task: Given a paragraph from a biomedical research article, or a textual
 representation of a biomedical results table, extract
-ALL biomedical triplets with fields:
+ALL biomedical causal/mechanistic/functional triplets with fields:
 
 - subject (entity name)
 - subject_type (e.g., protein, gene, RNA, disease, drug, cell line, pathway, etc.)

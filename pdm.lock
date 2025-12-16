@@ -5,7 +5,7 @@
 groups = ["default"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:3f7706c0ac9c1fdae9db0f3e1dbdc4eb14a67d65431ce693f24cfcb87d188cbe"
+content_hash = "sha256:81b89ffadc227df3a60b55b93d155e4bba856c6b7002a996e5c350839306e313"
 
 [[metadata.targets]]
 requires_python = ">=3.9,<3.14"
@@ -486,6 +486,17 @@ groups = ["default"]
 files = [
     {file = "distro-1.9.0-py3-none-any.whl", hash = "sha256:7bffd925d65168f85027d8da9af6bddab658135b840670a223589bc0c8ef02b2"},
     {file = "distro-1.9.0.tar.gz", hash = "sha256:2fa77c6fd8940f116ee1d6b94a2f90b13b5ea8d019b98bc8bafdcabcdd9bdbed"},
+]
+
+[[package]]
+name = "einops"
+version = "0.8.1"
+requires_python = ">=3.8"
+summary = "A new flavour of deep learning operations"
+groups = ["default"]
+files = [
+    {file = "einops-0.8.1-py3-none-any.whl", hash = "sha256:919387eb55330f5757c6bea9165c5ff5cfe63a642682ea788a6d472576d81737"},
+    {file = "einops-0.8.1.tar.gz", hash = "sha256:de5d960a7a761225532e0f1959e5315ebeafc0cd43394732f103ca44b9837e84"},
 ]
 
 [[package]]
