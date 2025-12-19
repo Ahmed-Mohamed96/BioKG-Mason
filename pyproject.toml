@@ -5,7 +5,7 @@ description = "Default template for PDM package"
 authors = [
     {name = "Ahmed Mohamed", email = "ahmed.h.h.mohamed@outlook.com"},
 ]
-dependencies = ["openai>=1.6.0", "sentence-transformers>=2.2.2", "neo4j>=5.0.0", "pdfplumber>=0.10.0", "PyYAML>=6.0", "requests>=2.31.0", "langchain>=0.2.0", "langchain-openai>=0.1.0", "langchain-community>=0.2.0", "pydantic>=1.10", "einops>=0.8.1", "langchain-ollama>=0.3.10"]
+dependencies = ["openai>=1.6.0", "sentence-transformers>=2.2.2", "neo4j>=5.0.0", "pdfplumber>=0.10.0", "PyYAML>=6.0", "requests>=2.31.0", "langchain>=0.2.0", "langchain-openai>=0.1.0", "langchain-community>=0.2.0", "pydantic>=1.10", "einops>=0.8.1", "langchain-ollama>=0.3.10", "pip>=25.3"]
 requires-python = "<3.14,>=3.9"
 readme = "README.md"
 license = {text = "MIT"}

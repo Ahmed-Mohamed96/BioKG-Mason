@@ -5,7 +5,7 @@
 groups = ["default"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:5e3895efd6aad74ca3cbdcd30a821c787501cbec896f0405e94ac2035a54a4fb"
+content_hash = "sha256:b684fd8df6265c4e475e12255ffc5ac6f5ad783f291143b97df9237da2b1e437"
 
 [[metadata.targets]]
 requires_python = ">=3.9,<3.14"
@@ -1927,6 +1927,17 @@ files = [
     {file = "pillow-11.3.0-pp311-pypy311_pp73-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:504b6f59505f08ae014f724b6207ff6222662aab5cc9542577fb084ed0676ac7"},
     {file = "pillow-11.3.0-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:c84d689db21a1c397d001aa08241044aa2069e7587b398c8cc63020390b1c1b8"},
     {file = "pillow-11.3.0.tar.gz", hash = "sha256:3828ee7586cd0b2091b6209e5ad53e20d0649bbe87164a459d0676e035e8f523"},
+]
+
+[[package]]
+name = "pip"
+version = "25.3"
+requires_python = ">=3.9"
+summary = "The PyPA recommended tool for installing Python packages."
+groups = ["default"]
+files = [
+    {file = "pip-25.3-py3-none-any.whl", hash = "sha256:9655943313a94722b7774661c21049070f6bbb0a1516bf02f7c8d5d9201514cd"},
+    {file = "pip-25.3.tar.gz", hash = "sha256:8d0538dbbd7babbd207f261ed969c65de439f6bc9e5dbd3b3b9a77f25d95f343"},
 ]
 
 [[package]]
