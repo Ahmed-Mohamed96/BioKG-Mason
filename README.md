@@ -175,8 +175,8 @@ The pipeline reads settings from `config.yml` (in the project root by default).
 
 ```yaml
 llm:
-  provider: ollama        # "openai" or "ollama"
-  model: gemma3:4b      # OpenAI model name (or Ollama model if provider=ollama)
+  provider: openai        # "openai" or "ollama"
+  model: gpt-5      # OpenAI model name (or Ollama model if provider=ollama)
   temperature: 0.0
 
 embeddings:
