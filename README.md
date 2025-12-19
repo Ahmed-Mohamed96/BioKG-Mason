@@ -10,10 +10,7 @@ Given:
 BioKG-Agents will:
 
 1. Extract **paragraphs and tables** from each PDF.
-2. Use an LLM to extract **biomedical triplets** from each segment.
-3. Use embeddings + Neo4j to **resolve entities** and avoid duplicate nodes.
-4. Use an LLM-based **schema matcher** to assign broad, consistent node labels and relationship types (e.g., `PROTEIN`, `GENE`, `DISEASE`, `ACTIVATES`).
-5. Store all facts in Neo4j with **full provenance**:
+2. Use LLM Agents to extract, process, and store **biomedical triplets** from each text segment in Neo4j with **full provenance**:
    - `pmid`
    - `source_text` (paragraph or flattened table text)
    - `source_kind` (`paragraph` or `table`)
@@ -25,8 +22,6 @@ The project supports:
 - **Embeddings backends**:
   - OpenAI embeddings API, or
   - Local `sentence-transformers` models when embeddings provider is set to `ollama`.
-
-The codebase is a **PDM project** using a `src/` layout with main package `biokg_agents`.
 
 ---
 
@@ -147,7 +142,7 @@ git clone https://github.com/Ahmed-Mohamed96/BioKG-Agents.git
 cd BioKG-Agents
 ```
 
-### 4.2. Install dependencies with PDM
+### 4.2. Install dependencies with PDM (Pre-installation of PDM is required)
 
 From the project root:
 
@@ -301,15 +296,8 @@ Example `schema.json`:
 
 Behavior:
 
-- At startup, `SchemaMatcher` reads this file and loads these labels/types.
-- It also merges in labels/types already present in the Neo4j schema.
-- During the run, new labels/types from the LLM are added to an in-memory cache only (no write-back to `schema.json`).
-- For each triplet, the LLM is always shown:
-  - `preferred_labels` from `schema.json`.
-  - `other_labels` discovered in the KG or during this run.
-  - `existing_rels` (relationship types).
-
-This keeps the schema consistent while allowing some flexibility per run, without modifying `schema.json` on disk.
+- At startup, `BioKG-Agents` read this file and loads these labels/types.
+- Loaded labels/types are favored (but not forced) when assigning labels and relationship types to extracted triplets. This keeps the schema consistent while allowing some flexibility per run, without modifying `schema.json` on disk.
 
 ---
 
@@ -360,80 +348,7 @@ nohup pdm run python -u -m biokg_agents.pipeline > pipeline.log 2>&1 &
 tail -f pipeline.log
 ```
 
-Notes:
-
-- `-u` runs Python unbuffered, so `print()` statements appear promptly in `pipeline.log`.
-- `nohup` keeps the process running after you log out.
-- `tail -f` lets you monitor progress.
-
----
-
-## 9. How the Pipeline Works
-
-### 9.1. High-level flow
-
-For each PDF:
-
-1. **Segment extraction**
-   - `PDFReader.extract_segments()` returns a list of `DocSegment`:
-     - `kind`: `"paragraph"` or `"table"`
-     - `text`: the text to feed to the LLM
-     - `page`: page number
-     - `table_index`: for tables, index on that page (0-based)
-
-   - Paragraphs are taken directly from PDF text.
-   - Tables are converted into a text format:
-     - Each row: `column: value; column: value; ...`
-     - Prefixed with a small explanation so the LLM understands.
-
-2. **Triplet extraction (LLM)**
-   - `TripletExtractor` uses LangChain structured output (`with_structured_output`) to extract a list of triplets per segment:
-     - `subject`, `subject_type`
-     - `predicate`
-     - `object`, `object_type`
-   - Uses the shared `chat_model` (OpenAI/Ollama) with `temperature=0.0`.
-
-3. **Entity resolution (embeddings)**
-   - `EntityMatcher`:
-     - Embeds each entity name using the configured embeddings client:
-       - OpenAI embeddings (`provider: openai`), or
-       - Sentence-transformers locally (`provider: ollama`).
-     - Compares to all existing nodes in Neo4j using cosine similarity.
-     - If similarity ≥ `similarity_threshold`, picks that node; otherwise, marks entity as new.
-
-4. **Entity match validation (LLM)**
-   - `EntityMatchValidator`:
-     - Given the **segment text** (paragraph or table), the mention string, and the candidate node (name + labels), asks:
-       > “Does this mention refer to this candidate entity?”
-     - If LLM returns `false`, the match is **rejected**, and the entity is treated as **new** (no reuse of entity_id).
-   - Prevents incorrect merges based purely on embedding similarity.
-
-5. **Schema normalization (LLM)**
-   - `SchemaMatcher`:
-     - Reads `schema.json` (seed labels/types) once at startup.
-     - Adds labels/types discovered in Neo4j.
-     - For each triplet, passes:
-       - `preferred_labels` (from `schema.json`).
-       - `other_labels` (from KG or run).
-       - `existing_rels`.
-     - LLM returns:
-       - `subject_label`, `object_label`, `relationship_type`.
-     - Triplet entities and predicate are updated with these normalized values.
-   - Cache of labels/types is updated in memory, but not persisted to disk.
-
-6. **Upsert nodes**
-   - `Neo4jClient.upsert_entity` ensures:
-     - Each entity has a unique `entity_id` (UUID).
-     - Label (e.g., `PROTEIN`, `DISEASE`) is applied.
-     - `name` and `embedding` are stored.
-   - The entity matcher’s cache is updated, so future embeddings can match against these nodes.
-
-7. **Create relationships with provenance**
-   - `Neo4jClient.create_relationship`:
-     - `MERGE (s)-[r:TYPE]->(o)` (no props in MERGE).
-     - `SET r.pmid`, `r.source_text`, `r.source_kind`, `r.page`, `r.table_index`.
-   - Handles both paragraphs and tables.
-   - Avoids Neo4j errors about null values in MERGE by only setting properties after matching.
+Notes: `tail -f` lets you monitor progress.
 
 ---
 
@@ -448,7 +363,7 @@ For each PDF:
   - `name` (string, canonical entity name or surface form)
   - `embedding` (list of floats)
 
-Example:
+To show an example of a node in Neo4j:
 
 ```cypher
 MATCH (n)
@@ -467,7 +382,7 @@ LIMIT 10;
   - `page` (integer, page number in PDF)
   - `table_index` (integer or null; index for tables)
 
-Example:
+To show an example of a triplet in Neo4j:
 
 ```cypher
 MATCH (s)-[r]->(o)
