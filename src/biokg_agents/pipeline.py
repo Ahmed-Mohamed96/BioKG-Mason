@@ -3,7 +3,7 @@ from typing import List, Optional, Dict
 
 from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
-from langchain_community.chat_models import ChatOllama
+from langchain_ollama import ChatOllama
 
 from .config import Config
 from .modules.base import EmbeddingsClient
@@ -244,10 +244,7 @@ class PDFToKGPipeline:
         counter = 1
         triplet_counter = 1
         for seg in tqdm(segments, desc="Processing Text Segments", unit="Segment"):
-            if counter < 20 :
-                print(f"Skiping Segment {counter}")
-                counter += 1
-                continue
+            
             print("\n")
             print("\n")
             print(f"========== Segment {counter}/{len(segments)} ==========")

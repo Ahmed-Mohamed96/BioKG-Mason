@@ -5,7 +5,7 @@
 groups = ["default"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:81b89ffadc227df3a60b55b93d155e4bba856c6b7002a996e5c350839306e313"
+content_hash = "sha256:5e3895efd6aad74ca3cbdcd30a821c787501cbec896f0405e94ac2035a54a4fb"
 
 [[metadata.targets]]
 requires_python = ">=3.9,<3.14"
@@ -1048,6 +1048,21 @@ files = [
 ]
 
 [[package]]
+name = "langchain-ollama"
+version = "0.3.10"
+requires_python = "<4.0.0,>=3.9.0"
+summary = "An integration package connecting Ollama and LangChain"
+groups = ["default"]
+dependencies = [
+    "langchain-core<2.0.0,>=0.3.76",
+    "ollama<1.0.0,>=0.5.3",
+]
+files = [
+    {file = "langchain_ollama-0.3.10-py3-none-any.whl", hash = "sha256:7550792872e8f86d362568e9ceb0f8085428bc59946c7b44e726358ba4b280f9"},
+    {file = "langchain_ollama-0.3.10.tar.gz", hash = "sha256:5d942d331c44351bae5c5c5965603ceb20b0ee4d70082290f4b15bc638559756"},
+]
+
+[[package]]
 name = "langchain-openai"
 version = "0.3.35"
 requires_python = "<4.0.0,>=3.9.0"
@@ -1637,6 +1652,21 @@ files = [
     {file = "nvidia_nvtx_cu12-12.6.77-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:b90bed3df379fa79afbd21be8e04a0314336b8ae16768b58f2d34cb1d04cd7d2"},
     {file = "nvidia_nvtx_cu12-12.6.77-py3-none-manylinux2014_x86_64.whl", hash = "sha256:6574241a3ec5fdc9334353ab8c479fe75841dbe8f4532a8fc97ce63503330ba1"},
     {file = "nvidia_nvtx_cu12-12.6.77-py3-none-win_amd64.whl", hash = "sha256:2fb11a4af04a5e6c84073e6404d26588a34afd35379f0855a99797897efa75c0"},
+]
+
+[[package]]
+name = "ollama"
+version = "0.6.1"
+requires_python = ">=3.8"
+summary = "The official Python client for Ollama."
+groups = ["default"]
+dependencies = [
+    "httpx>=0.27",
+    "pydantic>=2.9",
+]
+files = [
+    {file = "ollama-0.6.1-py3-none-any.whl", hash = "sha256:fc4c984b345735c5486faeee67d8a265214a31cbb828167782dc642ce0a2bf8c"},
+    {file = "ollama-0.6.1.tar.gz", hash = "sha256:478c67546836430034b415ed64fa890fd3d1ff91781a9d548b3325274e69d7c6"},
 ]
 
 [[package]]
