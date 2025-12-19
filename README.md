@@ -175,8 +175,8 @@ The pipeline reads settings from `config.yml` (in the project root by default).
 
 ```yaml
 llm:
-  provider: openai        # "openai" or "ollama"
-  model: gpt-4o-mini      # OpenAI model name (or Ollama model if provider=ollama)
+  provider: ollama        # "openai" or "ollama"
+  model: gemma3:4b      # OpenAI model name (or Ollama model if provider=ollama)
   temperature: 0.0
 
 embeddings:
@@ -218,7 +218,7 @@ If you use Ollama as the LLM:
 ```yaml
 llm:
   provider: ollama
-  model: llama3
+  model: gemma3:4b
   temperature: 0.0
 ```
 
@@ -226,7 +226,7 @@ Ensure:
 
 ```bash
 ollama serve
-ollama pull llama3
+ollama pull gemma3:4b
 ```
 
 ### 5.4. Local sentence-transformers embeddings
