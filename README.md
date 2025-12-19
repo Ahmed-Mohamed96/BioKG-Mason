@@ -1,3 +1,5 @@
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/80288506-9d8c-4aa8-a387-cbc94b0698c0" />
+
 # BioKG-Mason – Biomedical Knowledge Graph Construction with LLM Agents
 
 **BioKG-Mason** builds a **biomedical knowledge graph (KG)** from PDF articles named by PMID, using a pipeline of LLM-based agents plus Neo4j.
