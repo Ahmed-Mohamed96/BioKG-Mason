@@ -91,8 +91,8 @@ BioKG-Agents/
         sentence_transformers_client.py
         ollama_client.py
   pdfs/
-    12345678.pdf
-    87654321.pdf
+    12345678.pdf (example)
+    87654321.pdf (example)
 ```
 
 Key package: `biokg_agents` (under `src/`).
