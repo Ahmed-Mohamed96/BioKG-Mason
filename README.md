@@ -1,13 +1,13 @@
-# BioKG-Agents – Biomedical Knowledge Graph Construction with LLM Agents
+# BioKG-Mason – Biomedical Knowledge Graph Construction with LLM Agents
 
-**BioKG-Agents** builds a **biomedical knowledge graph (KG)** from PDF articles named by PMID, using a pipeline of LLM-based agents plus Neo4j.
+**BioKG-Mason** builds a **biomedical knowledge graph (KG)** from PDF articles named by PMID, using a pipeline of LLM-based agents plus Neo4j.
 
 Given:
 
 - One or more biomedical **PDF files** (filenames = PMIDs)  
 - An **(initially empty) Neo4j database**
 
-BioKG-Agents will:
+BioKG-Mason will:
 
 1. Extract **paragraphs and tables** from each PDF.
 2. Use LLM Agents to extract, process, and store **biomedical triplets** from each text segment in Neo4j with **full provenance**:
@@ -63,7 +63,7 @@ The project supports:
 ## 2. Repository Layout
 
 ```text
-BioKG-Agents/
+BioKG-Mason/
   pyproject.toml
   config.yml
   schema.json
@@ -131,15 +131,15 @@ Already managed via PDM in `pyproject.toml`, but conceptually include:
 If you have SSH access:
 
 ```bash
-git clone git@github.com:Ahmed-Mohamed96/BioKG-Agents.git
-cd BioKG-Agents
+git clone git@github.com:Ahmed-Mohamed96/BioKG-Mason.git
+cd BioKG-Mason
 ```
 
 If SSH fails, use HTTPS:
 
 ```bash
-git clone https://github.com/Ahmed-Mohamed96/BioKG-Agents.git
-cd BioKG-Agents
+git clone https://github.com/Ahmed-Mohamed96/BioKG-Mason.git
+cd BioKG-Mason
 ```
 
 ### 4.2. Install dependencies with PDM (Pre-installation of PDM is required)
@@ -296,7 +296,7 @@ Example `schema.json`:
 
 Behavior:
 
-- At startup, `BioKG-Agents` read this file and loads these labels/types.
+- At startup, `BioKG-Mason` read this file and loads these labels/types.
 - Loaded labels/types are favored (but not forced) when assigning labels and relationship types to extracted triplets. This keeps the schema consistent while allowing some flexibility per run, without modifying `schema.json` on disk.
 
 ---
@@ -430,7 +430,7 @@ If you see `FileNotFoundError: 'config.yml'`, ensure:
 
 ---
 
-## 12. Extending BioKG-Agents
+## 12. Extending BioKG-Mason
 
 Common extension points:
 
@@ -455,7 +455,7 @@ Common extension points:
 
 If you use this software, please cite it as below.
 
-Title: "BioKG-Agents: Biomedical Knowledge Graph Construction with LLM Agents"
+Title: "BioKG-Mason: Biomedical Knowledge Graph Construction with LLM Agents"
 
 Authors:
   - Family-names: Mohamed
@@ -464,7 +464,7 @@ Authors:
     
     Email: Ahmed.H.H.Mohamed@outlook.com
 
-repository-code: "https://github.com/Ahmed-Mohamed96/BioKG-Agents"
+repository-code: "https://github.com/Ahmed-Mohamed96/BioKG-Mason"
 
 version: "0.1.0"
 
