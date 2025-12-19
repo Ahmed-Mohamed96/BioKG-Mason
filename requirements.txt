@@ -1,0 +1,17 @@
+# Core LLM and embeddings
+
+openai>=1.6.0              # OpenAI API client
+sentence-transformers>=2.2.2
+
+# Graph database
+
+neo4j>=5.0.0               # Neo4j Python driver
+
+# PDF processing
+
+pdfplumber>=0.10.0
+
+# Config and HTTP
+
+PyYAML>=6.0
+requests>=2.31.0

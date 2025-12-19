@@ -1,0 +1,23 @@
+llm:
+  provider: openai           # "openai" or "ollama"
+  model: gpt-5         # LLM model name
+  temperature: 0.0     # LLM Temperature (0.0 to 1.0)
+
+embeddings:
+  provider: ollama           # "openai" or "ollama"
+  model: nomic-ai/nomic-embed-text-v2-moe
+
+neo4j:
+  uri: bolt://localhost:7687
+  user: neo4j
+  password: "55555555"
+  database: propresyn-gba-seed
+
+pdf:
+  input_dir: ./tests/pdfs          # folder containing PDF files named by PMID
+
+pipeline:
+  similarity_threshold: 0.75 # cosine similarity threshold for entity matching
+
+schema:
+  file: schema.json      # path to your initial schema file
