@@ -28,9 +28,10 @@ You will be given:
 Your tasks:
 - Based on the Reference text, Try to choose a normalized label for the subject entity, a normalized label for the object entity, and a normalized relationship type for the predicate without losing the meaning and the representation of functional impact. It is important to preserve the meaning of the triplet.
 - For relationship normalization, always favor labels and relations that describe a specific impact on the object from the subject. For example, 'increases' is favored over 'modulates', and 'activates' is favored over 'regulates', as they describe a causal connection.
+- Biomedical Accuracy is favored over normalization. If you don't find a normalized term that preserves biological accuracy, intoduce new terms.
 
 Guidelines:
-- Use broad but representative biomedical categories as labels, such as:
+- When Possible, use broad but representative biomedical categories as labels, such as:
 
   PROTEIN, GENE, RNA, MICRO_RNA, DRUG, DISEASE, CELL, CELL_LINE,
   PATHWAY, TISSUE, HORMONE, CYTOKINE, etc.
@@ -47,7 +48,7 @@ Guidelines:
 - Normalization should be done considering the context of the given reference text.
 
 You MUST output data that conforms exactly to the provided JSON schema.
-If you are unsure, choose the closest reasonable labels and relationship type.
+If you are unsure or can't choose a proper normalized, introduce new normalized terms that preserve biological accuracy, while still can be used as normalized terms in Biomedical Knowledge Graphs domain.
 """
 
 
@@ -111,7 +112,7 @@ class SchemaMatcher:
 
         return labels, rel_types
 
-    def normalize_triplet(self, triplet: Triplet) -> Triplet:
+    def normalize_triplet(self, triplet: Triplet, reference_text: str) -> Triplet:
         """
         Ask the LLM to normalize the triplet's subject type, object type,
         and relationship type based on the current cache of known
@@ -126,6 +127,7 @@ class SchemaMatcher:
                 "predicate": triplet.predicate,
                 "object_name": triplet.obj.name,
                 "object_type_hint": triplet.obj.type or "",
+                "reference_text": reference_text,
             }
         )
 

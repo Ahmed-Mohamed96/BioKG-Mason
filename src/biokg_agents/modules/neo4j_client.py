@@ -55,45 +55,83 @@ class Neo4jClient:
             return [record.data() for record in result]
 
     def upsert_entity(
-        self, name: str, label: str, embedding: List[float], entity_id: Optional[str] = None
+        self,
+        name: str,
+        label: str,
+        embedding: List[float],
+        entity_id: Optional[str] = None,
     ) -> str:
         """
-        Create or update an entity node. Returns entity_id.
-        If entity_id is None, a new node is created.
+        Upsert an entity node using a priority:
+        1) Reuse an existing node with the same label + name.
+        2) If none found, and entity_id is provided, reuse node with that entity_id.
+        3) Otherwise, create a new node (with entity_id = given or new UUID).
+
+        Returns the entity_id of the node used/created.
         """
         label = _sanitize_label(label)
+
         with self.driver.session() as session:
-            if entity_id is None:
-                new_id = str(uuid4())
-                query = f"""
-                CREATE (e:`{label}` {{
-                    entity_id: $entity_id,
-                    name: $name,
-                    embedding: $embedding
-                }})
-                RETURN e.entity_id AS entity_id
-                """
-                params = {
-                    "entity_id": new_id,
-                    "name": name,
-                    "embedding": embedding,
-                }
-            else:
-                # Add label if missing and update name/embedding
-                query = f"""
+            # 1) Try to match by (label, name)
+            query_match_name = f"""
+            MATCH (e:`{label}` {{name: $name}})
+            RETURN e.entity_id AS entity_id
+            LIMIT 1
+            """
+            rec = session.run(query_match_name, name=name).single()
+            if rec:
+                existing_id = rec["entity_id"]
+                # Update this existing node
+                query_update = f"""
                 MATCH (e {{entity_id: $entity_id}})
                 SET e:`{label}`,
                     e.name = $name,
                     e.embedding = $embedding
                 RETURN e.entity_id AS entity_id
                 """
-                params = {
-                    "entity_id": entity_id,
-                    "name": name,
-                    "embedding": embedding,
-                }
-            record = session.run(query, **params).single()
-            return record["entity_id"]
+                rec2 = session.run(
+                    query_update,
+                    entity_id=existing_id,
+                    name=name,
+                    embedding=embedding,
+                ).single()
+                return rec2["entity_id"]
+
+            # 2) Fallback: if entity_id is provided, try to match by entity_id
+            if entity_id is not None:
+                query_match_id = f"""
+                MATCH (e {{entity_id: $entity_id}})
+                SET e:`{label}`,
+                    e.name = $name,
+                    e.embedding = $embedding
+                RETURN e.entity_id AS entity_id
+                """
+                rec = session.run(
+                    query_match_id,
+                    entity_id=entity_id,
+                    name=name,
+                    embedding=embedding,
+                ).single()
+                if rec:
+                    return rec["entity_id"]
+
+            # 3) No existing node; create a new one
+            new_id = entity_id or str(uuid4())
+            query_create = f"""
+            CREATE (e:`{label}` {{
+                entity_id: $entity_id,
+                name: $name,
+                embedding: $embedding
+            }})
+            RETURN e.entity_id AS entity_id
+            """
+            rec = session.run(
+                query_create,
+                entity_id=new_id,
+                name=name,
+                embedding=embedding,
+            ).single()
+            return rec["entity_id"]
 
     def create_relationship(
         self,

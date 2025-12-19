@@ -71,7 +71,7 @@ class EntityMatcher:
         - match_info: the matched existing entity dict (if any), or None
 
         """
-        embedding = self.emb.embed(entity.name)
+        embedding = self.emb.embed(f"{entity.name} {entity.type}")
         match = self._find_best_match(embedding)
         if match:
             # Use existing node's entity_id (canonical node)

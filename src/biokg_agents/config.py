@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 import yaml
 
 
@@ -46,6 +46,7 @@ class Config:
     neo4j: Neo4jConfig
     pdf: PDFConfig
     pipeline: PipelineConfig
+    schema: Optional[SchemaConfig] = None
 
 
 def load_config(path: str) -> Config:

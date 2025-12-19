@@ -14,18 +14,19 @@ SYSTEM_PROMPT = """
 You are an expert biomedical entity disambiguation system.
 
 You will be given:
-1) A paragraph from a biomedical article.
-2) A mention string that appears in the paragraph.
+1) A paragraph or table from a biomedical article.
+2) A mention string extracted from the paragraph or table with assigned type by a curator.
 3) A candidate existing node from a biomedical knowledge graph, with:
    - canonical name
    - one or more semantic labels (e.g., PROTEIN, GENE, DISEASE).
 
 Your task:
-Determine if, in the context of the paragraph, the mention refers to the SAME
+Determine if, in the context of the paragraph or table, the mention refers to the SAME
 biomedical entity as the candidate node.
 
 Rules:
 - Consider biological meaning and context, not just string similarity.
+- If the name and label strings match, answer "true" (i.e., Merge them).
 - If you are unsure, answer "false" (i.e., do NOT merge them).
 
 You MUST output data that conforms exactly to the provided JSON schema.

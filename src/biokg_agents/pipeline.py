@@ -126,7 +126,7 @@ class PDFToKGPipeline:
         else:
             entity = triplet.obj
 
-        mention = entity.name
+        mention = f"{entity.name} (type: {entity.type})"
         candidate_name = match_info.get("name", "")
         candidate_labels = match_info.get("labels") or []
 
@@ -191,13 +191,13 @@ class PDFToKGPipeline:
 
         subj_entity_id = self.kg_client.upsert_entity(
             name=subj.name,
-            label=subj.type or "BIO_ENTITY",
+            label=subj.type,
             embedding=subj_emb,
             entity_id=subj.entity_id,
         )
         obj_entity_id = self.kg_client.upsert_entity(
             name=obj.name,
-            label=obj.type or "BIO_ENTITY",
+            label=obj.type,
             embedding=obj_emb,
             entity_id=obj.entity_id,
         )
@@ -207,7 +207,7 @@ class PDFToKGPipeline:
             {
                 "entity_id": subj_entity_id,
                 "name": subj.name,
-                "labels": [subj.type or "BIO_ENTITY"],
+                "labels": [subj.type],
                 "embedding": subj_emb,
             }
         )
@@ -215,7 +215,7 @@ class PDFToKGPipeline:
             {
                 "entity_id": obj_entity_id,
                 "name": obj.name,
-                "labels": [obj.type or "BIO_ENTITY"],
+                "labels": [obj.type],
                 "embedding": obj_emb,
             }
         )
@@ -244,6 +244,10 @@ class PDFToKGPipeline:
         counter = 1
         triplet_counter = 1
         for seg in tqdm(segments, desc="Processing Text Segments", unit="Segment"):
+            if counter < 20 :
+                print(f"Skiping Segment {counter}")
+                counter += 1
+                continue
             print("\n")
             print("\n")
             print(f"========== Segment {counter}/{len(segments)} ==========")
@@ -255,25 +259,29 @@ class PDFToKGPipeline:
             print(f"[SEG {counter}] Number of Triplets = {len(triplets)}")
 
             for triplet in triplets:
-                print(f"[Triplet {triplet_counter}] [Original] {triplet.subject.name} - {triplet.predicate} >> {triplet.obj.name}")
-                # Attach provenance to triplet metadata (optional)
-                triplet.metadata["pmid"] = pmid
-                triplet.metadata["source_kind"] = seg.kind
-                triplet.metadata["page"] = seg.page
-                triplet.metadata["table_index"] = seg.table_index
+                try:
+                    print(f"[Triplet {triplet_counter}] [Original] {triplet.subject.name} - {triplet.predicate} >> {triplet.obj.name}")
+                    # Attach provenance to triplet metadata (optional)
+                    triplet.metadata["pmid"] = pmid
+                    triplet.metadata["source_kind"] = seg.kind
+                    triplet.metadata["page"] = seg.page
+                    triplet.metadata["table_index"] = seg.table_index
 
-                self._process_triplet(
-                    triplet=triplet,
-                    pmid=pmid,
-                    source_text=source_text,
-                    source_kind=seg.kind,
-                    page=seg.page,
-                    table_index=seg.table_index,
-                )
+                    self._process_triplet(
+                        triplet=triplet,
+                        pmid=pmid,
+                        source_text=source_text,
+                        source_kind=seg.kind,
+                        page=seg.page,
+                        table_index=seg.table_index,
+                    )
 
-                triplet_counter += 1
-                print("\n")
-                print(f"-----------------------------------------")
+                    triplet_counter += 1
+                    print("\n")
+                    print(f"-----------------------------------------")
+                except Exception as e:
+                    print(f"[FAIL] {e}")
+                    continue
             counter += 1
             print(f"=========================================")
 
